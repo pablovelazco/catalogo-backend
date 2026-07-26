@@ -11,66 +11,49 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-import jakarta.servlet.http.HttpServletResponse;
-
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
-	
-	@Autowired
-	private JwtFilter jwtFilter;
-	
-	@Bean
-	public PasswordEncoder passwordEncoder() {
-		return new BCryptPasswordEncoder();
-	}
-	
-	@Bean
-	public SecurityFilterChain securityFilterChain(HttpSecurity http) {
-		
-		http
-		.csrf(csrf -> csrf.disable())
-		.sessionManagement(
-			session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-		)
-		.authorizeHttpRequests(
-			auth -> auth
-			.requestMatchers("/api/auth/**").permitAll()
-			//.requestMatchers("/api/categorias/**").authenticated()
-			.anyRequest().authenticated()
-		)
-		.exceptionHandling( 
-			ex -> ex.authenticationEntryPoint(
-					(request, response, authException) -> {
-						response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); //401
-						response.setContentType("application/json");
-						
-						String errorJwt = (String) request.getAttribute("error_jwt");
-						String mensajeError;						
-						if("TOKEN_EXPIRED".equals(errorJwt)) {
-							mensajeError = "TOKEN_EXPIRED";
-						}else if ("TOKEN_INVALID".equals(errorJwt)) {
-							mensajeError = "TOKEN_INVALID";
-						}else {
-							mensajeError = "UNAUTHORIZED";
-						}
-						
-						response.getWriter().write("{\"error\" : \"" + mensajeError + "\"}");
-					}
-				)
-			)
-		.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-		
-		return http.build();
-	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
+
+    @Autowired
+    private JwtFilter jwtFilter;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http) throws Exception {
+
+        http
+            .csrf(csrf -> csrf.disable())
+
+            .cors(cors -> {})
+
+            .sessionManagement(session ->
+                session.sessionCreationPolicy(
+                    SessionCreationPolicy.STATELESS
+                )
+            )
+
+            .authorizeHttpRequests(auth -> auth
+
+                .requestMatchers("/api/auth/**").permitAll()
+
+                .requestMatchers("/api/categorias/**").permitAll()
+
+                .requestMatchers("/api/productos/**").permitAll()
+
+                .anyRequest().authenticated()
+            )
+
+            .addFilterBefore(
+                jwtFilter,
+                UsernamePasswordAuthenticationFilter.class
+            );
+
+        return http.build();
+    }
 }

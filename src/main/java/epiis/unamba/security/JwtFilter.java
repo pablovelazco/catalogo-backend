@@ -17,49 +17,79 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
 @Component
-public class JwtFilter extends OncePerRequestFilter{
-	
-	@Autowired
-	private JwtService jwtService;
+public class JwtFilter extends OncePerRequestFilter {
 
-	@Override
-	protected void doFilterInternal(
-			HttpServletRequest request, 
-			HttpServletResponse response, 
-			FilterChain filterChain)
-		throws ServletException, IOException {
-		
-		String path = request.getServletPath();
-		
-		if(path.startsWith("/api/auth")) { //ENDPOINT LIBRE SIN VALIDACION DE TOKEN
-			filterChain.doFilter(request, response);
-			return;
-		}
-		
-		//ENDPOINTS CON VALIDACION
-		String authHeader = request.getHeader("Authorization");
-		if(authHeader != null && authHeader.startsWith("Bearer ")) {
-			String token = authHeader.substring(7);
-			
-			try {
-				jwtService.isValidToken(token);
-				
-				String username = jwtService.getUsername(token);
-				UsernamePasswordAuthenticationToken authentication =
-						new UsernamePasswordAuthenticationToken(
-								username, null, Collections.emptyList()
-						);
-				SecurityContextHolder.getContext().setAuthentication(authentication);
-			}catch(ExpiredJwtException e) {
-				request.setAttribute("error_jwt", "TOKEN_EXPIRED");
-			}catch(Exception e) {
-				request.setAttribute("error_jwt", "TOKEN_INVALID");
-			}
-		}
+    @Autowired
+    private JwtService jwtService;
 
-		filterChain.doFilter(request, response);
-	}
-	
-	
-	
+    @Override
+    protected void doFilterInternal(
+            HttpServletRequest request,
+            HttpServletResponse response,
+            FilterChain filterChain)
+            throws ServletException, IOException {
+
+        String path = request.getServletPath();
+
+        // =========================================
+        // RUTAS PÚBLICAS
+        // =========================================
+
+        if (path.startsWith("/api/auth")
+                || path.startsWith("/api/categorias")
+                || path.startsWith("/api/productos")) {
+
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // =========================================
+        // VALIDAR TOKEN
+        // =========================================
+
+        String authHeader =
+                request.getHeader("Authorization");
+
+        if (authHeader != null
+                && authHeader.startsWith("Bearer ")) {
+
+            String token =
+                    authHeader.substring(7);
+
+            try {
+
+                jwtService.isValidToken(token);
+
+                String username =
+                        jwtService.getUsername(token);
+
+                UsernamePasswordAuthenticationToken authentication =
+                        new UsernamePasswordAuthenticationToken(
+                                username,
+                                null,
+                                Collections.emptyList()
+                        );
+
+                SecurityContextHolder
+                        .getContext()
+                        .setAuthentication(authentication);
+
+            } catch (ExpiredJwtException e) {
+
+                request.setAttribute(
+                        "error_jwt",
+                        "TOKEN_EXPIRED"
+                );
+
+            } catch (Exception e) {
+
+                request.setAttribute(
+                        "error_jwt",
+                        "TOKEN_INVALID"
+                );
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
 }
